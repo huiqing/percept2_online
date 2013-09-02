@@ -1,0 +1,11 @@
+{application,percept2_online,
+             [{description,"Percept2 Online Visualisation ."},
+              {vsn,"1"},
+              {modules,[percept2_online,percept2_online_app,
+                        percept2_online_sup,percept2_online_trace,
+                        percept2_sampling,toppage_handler,websocket,
+                        websocket_app,websocket_sup,ws_handler]},
+              {registered,[]},
+              {applications,[kernel,stdlib,cowboy]},
+              {mod,{percept2_online_app,[]}},
+              {env,[]}]}.

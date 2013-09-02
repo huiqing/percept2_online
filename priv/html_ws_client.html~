@@ -1,0 +1,156 @@
+<html>
+  <head>
+    <meta http-equiv="Content-Type" content="text/html; charset=ISO-8859-1">
+    <title>Percept2 Online Visualisation</title>
+    <script src="/static/jquery.min.js"></script>
+    <script type="text/javascript">
+      
+      var websocket;
+      $(document).ready(init);
+      
+      function init() {
+          if(!("WebSocket" in window)){  
+              $('#status').append('<p><span style="color: red;">websockets are not supported </span></p>');
+              $("#navigation").hide();  
+          } else {
+              $('#status').append('<p><span style="color: green;">websockets are supported </span></p>');
+              connect();
+          };
+              $("#connected").hide(); 	
+              $("#content").hide(); 	
+      };
+
+      function connect()
+      {
+          wsHost = $("#server").val()
+          websocket = new WebSocket(wsHost);
+          showScreen('<b>Connecting to: ' +  wsHost + '</b>'); 
+          websocket.onopen = function(evt) { onOpen(evt) }; 
+          websocket.onclose = function(evt) { onClose(evt) }; 
+          websocket.onmessage = function(evt) { onMessage(evt) }; 
+          websocket.onerror = function(evt) { onError(evt) }; 
+      };  
+      
+      function disconnect() {
+          websocket.send("stop")
+          websocket.close();
+      }; 
+
+      
+      function toggle_connection(input){
+          if(websocket.readyState == websocket.OPEN){
+             disconnect();
+      } else {
+              connect();
+              start_profile(input);
+              };
+      };
+
+      function findFeatureSelection(feature){
+      var test = document.getElementsByName(feature);
+      var sizes = test.length;
+      for (i=0; i < sizes; i++) {
+                    if (test[i].checked==true) {
+                    return test[i].value;
+                    };
+                    };
+                    };      
+                    
+      function findNodeSelection(node)
+       {
+          var test = document.getElementsByName(node);
+          var sizes = test.length;
+          var nodes = "";
+          for (i = 0; i < sizes; i++){
+          if (test[i].checked==true){
+             nodes = nodes + test[i].value + ";";
+          };
+          };
+        return nodes;
+       };
+           
+
+      function start_profile(input)
+      {
+         var featureS =  findFeatureSelection("feature");
+         var nodeS = findNodeSelection("node");
+         var txt = featureS+':'+ nodeS;
+         showScreen(txt);
+         setTimeout(function(){websocket.send(txt)}, 1000);
+      };
+         
+      
+        
+      
+      function sendTxt() {
+          if(websocket.readyState == websocket.OPEN){
+              txt = $("#send_txt").val();
+              websocket.send(txt);
+              showScreen('sending: ' + txt); 
+          } else {
+               showScreen('websocket is not connected'); 
+          };
+      };
+
+      function onOpen(evt) { 
+          showScreen('<span style="color: green;">CONNECTED </span>'); 
+          $("#connected").fadeIn('slow');
+          $("#content").fadeIn('slow');
+      };  
+
+      function onClose(evt) { 
+          showScreen('<span style="color: red;">DISCONNECTED </span>');
+      };  
+
+      function onMessage(evt) { 
+          showScreen('<span style="color: blue;">RESPONSE: ' + evt.data+ '</span>'); 
+      };  
+
+      function showScreen(txt) { 
+          $('#output').prepend('<p>' + txt + '</p>');
+      };
+
+      function clearScreen() 
+      { 
+          $('#output').html("");
+      };
+    </script>
+  </head>
+
+  <body>
+    <div id="header">
+      <h1 align=middle  style="color: blue;">Percept2 Online Visualisation</h1>
+      <div id="status"></div>
+    </div>
+
+
+    <div id="visualisation">
+      <form name="input">
+        <p> Please select the feature you would like to visualise:<p>
+          <input type="radio" name="feature" value="rq" CHECKED>Run-queue length<br>
+          <input type="radio" name="feature" value="migration">Process migration <br>
+          <input type="radio" name="feature" value="rq_migration">Run-queue length and process migration<br>
+          <input type="radio" name="feature" value="inter_node">Inter-node communication <br>
+        <p> Please select the node(s) you would like to monitor:<p>
+          <input type="checkbox" name="node" value="node1@127.0.0.1" CHECKED>node1@127.0.0.1<br>
+          <input type="checkbox" name="node" value="node2@127.0.0.1">node2@127.0.0.1<br> 
+          <input type="checkbox" name="node" value="node3@127.0.0.1">node3@127.0.0.1<br> 
+          <input type="checkbox" name="node" value="node4@127.0.0.1">node4@127.0.0.1<br> 
+          <input type='text' id="server" value="ws://localhost:8080/websocket">
+          <button type="button" onclick="toggle_connection(this.form)">Start/Stop Visualisation</button>
+      </form>
+    </div>
+   <!--   <div id="connected">				
+	<p>
+	  <input type='text' id="send_txt" value=></input>
+	  <button type="button" onclick="sendTxt();">send</button>
+	</p>
+      </div> -->
+
+      <div id="content">						
+	<button id="clear" onclick="clearScreen()" >Clear text</button>
+	<div id="output"></div>
+      </div>
+
+  </body>
+</html> 
