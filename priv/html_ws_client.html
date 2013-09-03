@@ -139,11 +139,12 @@
           <input type="radio" name="feature" value="migration">Process migration <br>
           <input type="radio" name="feature" value="rq_migration">Run-queue length and process migration<br>
           <input type="radio" name="feature" value="inter_node">Inter-node communication <br>
+          <input type="radio" name="feature" value="s_group">s_group operations<br>
         <p> Please select the node(s) you would like to monitor:<p>
           <input type="checkbox" name="node" value="node1@127.0.0.1" CHECKED>node1@127.0.0.1<br>
           <input type="checkbox" name="node" value="node2@127.0.0.1">node2@127.0.0.1<br> 
           <input type="checkbox" name="node" value="node3@127.0.0.1">node3@127.0.0.1<br> 
-          <input type="checkbox" name="node" value="node4@127.0.0.1">node4@127.0.0.1<br> 
+          <input type="checkbox" name="node" value="node4@127.0.0.1">node4@127.0.0.1<br> <br>
           <input type='text' id="server" value="ws://localhost:8080/websocket">
           <button type="button" onclick="toggle_connection(this.form)">Start/Stop Visualisation</button>
       </form>
