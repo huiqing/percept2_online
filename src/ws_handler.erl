@@ -78,6 +78,9 @@ websocket_info({trace_rq, FromRq, ToRq}, Req, State=#state{data=Data}) ->
 websocket_info(_Info={run_queues_info, Ts, Rqs}, Req, State) ->
     InfoStr=lists:flatten(io_lib:format("~p.", [{run_queues, Ts, Rqs}])),
     {reply, {text, list_to_binary(InfoStr)}, Req, State};
+websocket_info(Info={s_group, _Node, _Fun, _Args}, Req, State) ->
+    InfoStr=lists:flatten(io_lib:format("~p.", [Info])),
+    {reply, {text, list_to_binary(InfoStr)}, Req, State};
 websocket_info(start_profile, Req, State) ->
     erlang:start_timer(1, self(), <<"Online profiling started...!">>),
     {ok, Req, State};
@@ -106,6 +109,8 @@ start_profiling(rq_migration, [Node|_]) ->
 start_profiling(inter_node, Nodes) ->
     erlang:start_timer(1, self(), <<"Online profiling started...!">>),
     percept2_online_trace:start_trace(inter_node, Nodes, {percept2_live, node()});
+start_profiling(s_group, Nodes) ->
+    percept2_online_trace:start_trace(s_group, Nodes, {percept2_live, node()});
 start_profiling(Cmd, _Nodes) ->
     io:format("start_profiling: unnexpected command:~p\n", [Cmd]),
     ok.
@@ -121,6 +126,8 @@ stop_profiling(rq_migration, [Node|_]) ->
     percept2_online_trace:stop_trace();
 stop_profiling(inter_node, _Nodes) ->
     erlang:start_timer(1, self(), stop_profile),
+    percept2_online_trace:stop_trace();
+stop_profiling(s_group, _Nodes) ->
     percept2_online_trace:stop_trace();
 stop_profiling(undefined,_) ->
     ok;

@@ -27,8 +27,15 @@ start_trace(migration, Node, Receiver) ->
     {ok, _} = dbg:p(all, [procs, running, scheduler_id]);
 start_trace(inter_node, Nodes,Receiver) ->
     {ok, _} = do_tracer(Nodes,Receiver),
-    {ok, _} = dbg:p(all, [send]).
-                  
+    {ok, _} = dbg:p(all, [send]);
+start_trace(s_group, Nodes, Receiver) ->                  
+    {ok, _} = do_tracer(Nodes, Receiver),
+    {ok, _} = dbg:p(all, [call]),
+    {ok, _} = dbg:tp({s_group, new_s_group, 2},[]),
+    {ok, _} = dbg:tp({s_group, delete_s_group,1},[]),
+    {ok, _} = dbg:tp({s_group, add_nodes, 2},[]),
+    {ok, _} = dbg:tp({s_group, remove_nodes, 2},[]).
+
 stop_trace() ->
     dbg:stop_clear().
 
@@ -47,7 +54,7 @@ do_tracer(Clients, Receiver) ->
                       {ok,N} ->
                           {ok,Port} = dbg:trace_port_control(N,get_listen_port),
                           {ok,_T} = dbg:get_tracer(N),
-                          dbg:trace_client(ip,{Host,Port}, mk_trace_parser(Receiver)),
+                          dbg:trace_client(ip,{Host,Port}, mk_trace_parser({N,Receiver})),
                       {[N|Cs], [N|S]};
                       Other ->
                           display_warning(N,{cannot_open_ip_trace_port,
@@ -63,35 +70,65 @@ do_tracer(Clients, Receiver) ->
 display_warning(Item,Warning) ->
     io:format("Warning: {~w,~w}~n",[Warning,Item]).
 
-mk_trace_parser(Receiver) -> 
-    {fun trace_parser/2, Receiver}.
+mk_trace_parser({Node, Receiver}) -> 
+    {fun trace_parser/2, {Node, Receiver}}.
 
-trace_parser({trace, From, send, _Msg, To}, Receiver) ->
+trace_parser({trace, From, send, _Msg, To}, {Node,Receiver}) ->
     FromNode = get_node_name(From),
     ToNode = get_node_name(To),
     case FromNode/=node() andalso ToNode/=node() 
         andalso FromNode/=ToNode of 
         true ->
             Receiver!{trace_inter_node, FromNode,ToNode},
-            Receiver;        
+            {Node, Receiver};        
         false ->
-            Receiver
+            {Node, Receiver}
     end;
-trace_parser(_Trace={trace, Pid, in, Rq, _MFA}, Receiver) ->
+trace_parser({trace_ts, From, send, _Msg, To, _TS}, {Node,Receiver}) ->
+    FromNode = get_node_name(From),
+    ToNode = get_node_name(To),
+    case FromNode/=node() andalso ToNode/=node() 
+        andalso FromNode/=ToNode of 
+        true ->
+            Receiver!{trace_inter_node, FromNode,ToNode},
+            {Node, Receiver};        
+        false ->
+            {Node, Receiver}
+    end;
+trace_parser(_Trace={trace, Pid, in, Rq, _MFA}, {Node, Receiver}) ->
     case erlang:get({run_queue, Pid}) of 
         Rq ->
-            Receiver;
+            {Node, Receiver};
         undefined ->
             erlang:put({run_queue, Pid}, Rq),
-            Receiver;
+            {Node, Receiver};
         OldRq ->
             erlang:put({run_queue, Pid}, Rq),
             Receiver!{trace_rq, OldRq, Rq},
-            Receiver
+            {Node, Receiver}
     end;
-trace_parser(_Trace, Receiver) ->
-    Receiver.
-
+trace_parser(_Trace={trace_ts, Pid, in, Rq, _MFA, _TS}, {Node, Receiver}) ->
+    case erlang:get({run_queue, Pid}) of 
+        Rq ->
+            {Node, Receiver};
+        undefined ->
+            erlang:put({run_queue, Pid}, Rq),
+            {Node, Receiver};
+        OldRq ->
+            erlang:put({run_queue, Pid}, Rq),
+            Receiver!{trace_rq, OldRq, Rq},
+            {Node, Receiver}
+    end;
+trace_parser(_Trace={trace_ts, _Pid, call, {s_group, Fun, Args}, _Ts}, 
+             {Node, Receiver}) ->
+    Receiver!{s_group, Node, Fun, Args},
+    {Node, Receiver};
+trace_parser(_Trace={trace, _Pid, call, {s_group, Fun, Args}}, 
+             {Node, Receiver}) ->
+    Receiver!{s_group, Node, Fun, Args},
+    {Node, Receiver};
+trace_parser(Trace, {Node, Receiver}) ->
+    {Node, Receiver}.
 
 get_node_name({_RegName, Node}) ->    
     Node;
@@ -100,7 +137,6 @@ get_node_name(Arg) ->
     catch _E1:_E2 ->
             nonode
     end.
-
 
 run_orbit_with_trace() ->
     Nodes = ['node1@127.0.0.1', 'node2@127.0.0.1', 'node3@127.0.0.1'],
