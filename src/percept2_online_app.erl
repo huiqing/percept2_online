@@ -15,7 +15,7 @@ start(_Type, _Args) ->
 			{"/", toppage_handler, []},
 			{"/websocket", ws_handler, []},
 			{"/static/[...]", cowboy_static, [
-				{directory, {priv_dir, websocket, [<<"static">>]}},
+				{directory, {priv_dir, percept2_online, [<<"static">>]}},
 				{mimetypes, {fun mimetypes:path_to_mimes/2, default}}
 			]}
 		]}

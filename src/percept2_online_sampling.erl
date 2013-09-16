@@ -105,8 +105,6 @@
 
 -define(online, true).
 
--define(WS, {percept2_online, 'percept2_online@127.0.0.1'}).
-
 %%-define(debug, 9).
 %%-define(debug, 0). 
 -ifdef(debug). 
