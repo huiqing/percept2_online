@@ -98,7 +98,7 @@
 
 -compile(export_all).
 
--define(INTERVAL, 100). % in milliseconds
+-define(INTERVAL, 200). % in milliseconds
 
 -define(seconds(EndTs,StartTs), 
         timer:now_diff(EndTs, StartTs)/1000000).

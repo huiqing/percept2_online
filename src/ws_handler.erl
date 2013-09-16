@@ -8,6 +8,7 @@
 -export([websocket_terminate/3]).
 
 -record(state, {
+               count =1          :: integer(),
                cmd   = undefined :: any(),
                nodes =[]         :: [node()],
                data  = []        :: any()
@@ -49,20 +50,31 @@ websocket_handle(_Data, Req, State) ->
 websocket_info({timeout, _Ref, stop_profile}, Req, State) ->
     {shutdown, Req, State};
 websocket_info({timeout, _Ref, _Msg}, Req, State) ->
-    StateStr=lists:flatten(
-               io_lib:format("~p.", 
-                             [{State#state.cmd,State#state.data}])),
+    Cnt = State#state.count,
+    StateStr=case State#state.cmd of 
+                 migration ->
+                     Data = [{From, To, Times}||
+                                {{From, To}, Times}<-State#state.data],
+                     lists:flatten(
+                       io_lib:format("~p.", 
+                                     [{Cnt*200/1000,Data}]));
+                 _ ->
+                     lists:flatten(
+                       io_lib:format("~p.", 
+                                     [{Cnt*200/1000,
+                                       State#state.data}]))
+             end,
     erlang:start_timer(200, self(), <<"timeout">>),
     {reply, {text, list_to_binary(StateStr)}, Req, 
-     State#state{data=[]}};
-websocket_info({trace_inter_node, From, To}, Req, State=#state{data=Data}) ->
+     State#state{count=Cnt+1, data=[]}};
+websocket_info({trace_inter_node, From, To,MsgSize}, Req, State=#state{data=Data}) ->
     Key = {From, To},
     NewData=case lists:keyfind(Key, 1, Data) of
                 false ->
-                    [{{From, To},1}|Data];
-                {_, Count} ->
+                    [{{From, To},1, MsgSize}|Data];
+                {_, Count, SumSize} ->
                     lists:keyreplace({From, To}, 1, 
-                                     Data, {Key, Count+1})
+                                     Data, {Key, Count+1, MsgSize+SumSize})
             end,
     {ok, Req, State#state{data=NewData}};
 websocket_info({trace_rq, FromRq, ToRq}, Req, State=#state{data=Data}) ->
@@ -76,7 +88,9 @@ websocket_info({trace_rq, FromRq, ToRq}, Req, State=#state{data=Data}) ->
              end,
     {ok, Req, State#state{data=NewData}};
 websocket_info(_Info={run_queues_info, Ts, Rqs}, Req, State) ->
-    InfoStr=lists:flatten(io_lib:format("~p.", [{run_queues, Ts, Rqs}])),
+    Str=lists:flatten([" "++integer_to_list(Len)++" "
+                       ||Len<-tuple_to_list(Rqs)]),
+    InfoStr=lists:flatten(io_lib:format("~p ~s", [Ts, Str])),
     {reply, {text, list_to_binary(InfoStr)}, Req, State};
 websocket_info(Info={s_group, _Node, _Fun, _Args}, Req, State) ->
     InfoStr=lists:flatten(io_lib:format("~p.", [Info])),

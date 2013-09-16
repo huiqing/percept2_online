@@ -73,24 +73,26 @@ display_warning(Item,Warning) ->
 mk_trace_parser({Node, Receiver}) -> 
     {fun trace_parser/2, {Node, Receiver}}.
 
-trace_parser({trace, From, send, _Msg, To}, {Node,Receiver}) ->
+trace_parser({trace, From, send, Msg, To}, {Node,Receiver}) ->
     FromNode = get_node_name(From),
     ToNode = get_node_name(To),
     case FromNode/=node() andalso ToNode/=node() 
         andalso FromNode/=ToNode of 
         true ->
-            Receiver!{trace_inter_node, FromNode,ToNode},
+            MsgSize = byte_size(term_to_binary(Msg)),
+            Receiver!{trace_inter_node, FromNode,ToNode, MsgSize},
             {Node, Receiver};        
         false ->
             {Node, Receiver}
     end;
-trace_parser({trace_ts, From, send, _Msg, To, _TS}, {Node,Receiver}) ->
+trace_parser({trace_ts, From, send, Msg, To, _TS}, {Node,Receiver}) ->
     FromNode = get_node_name(From),
     ToNode = get_node_name(To),
     case FromNode/=node() andalso ToNode/=node() 
         andalso FromNode/=ToNode of 
         true ->
-            Receiver!{trace_inter_node, FromNode,ToNode},
+            MsgSize = byte_size(term_to_binary(Msg)),
+            Receiver!{trace_inter_node, FromNode,ToNode, MsgSize},
             {Node, Receiver};        
         false ->
             {Node, Receiver}
@@ -127,7 +129,7 @@ trace_parser(_Trace={trace, _Pid, call, {s_group, Fun, Args}},
              {Node, Receiver}) ->
     Receiver!{s_group, Node, Fun, Args},
     {Node, Receiver};
-trace_parser(Trace, {Node, Receiver}) ->
+trace_parser(_Trace, {Node, Receiver}) ->
     {Node, Receiver}.
 
 get_node_name({_RegName, Node}) ->    
