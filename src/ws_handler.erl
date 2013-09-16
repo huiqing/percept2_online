@@ -17,7 +17,7 @@ init({tcp, http}, _Req, _Opts) ->
     {upgrade, protocol, cowboy_websocket}.
 
 websocket_init(_TransportName, Req, _Opts) ->
-    register(percept2_live, self()),
+    register(percept2_online, self()),
     {ok, Req, #state{}}.
 
 websocket_handle({text, <<"stop">>}, Req, State) ->
@@ -88,7 +88,7 @@ websocket_info(stop_profile, Req, State) ->
     erlang:start_timer(1, self(), stop_profile),
     {ok, Req, State};
 websocket_info(Info, Req, State) ->
-    io:format("ws_handler:unexpected trace:~p\n", [Info]),
+    io:format("percept2_online_ws_handler:unexpected trace:~p\n", [Info]),
     {ok, Req, State}.
 
 websocket_terminate(_Reason, _Req, _State) ->
@@ -96,32 +96,58 @@ websocket_terminate(_Reason, _Req, _State) ->
 
 
 start_profiling(rq, [Node|_]) ->
-    rpc:call(Node, percept2_sampling, start,
-             [[run_queues], infinity, none, {percept2_live, node()}]);
+    Res=rpc:call(Node, percept2_online_sampling, start,
+                 [[run_queues], infinity, none, {percept2_online, node()}]),
+    case Res of 
+        {badrpc, Reason} ->
+            io:format("Percept2_online failed to start profiling for reason:\n~p\n",
+                      [Reason]);
+        _ -> Res
+    end;
 start_profiling(migration, [Node|_]) ->
     erlang:start_timer(1, self(), <<"Online profiling started...!">>),
-    percept2_online_trace:start_trace(migration, Node, {percept2_live, node()});
+    percept2_online_trace:start_trace(migration, Node, {percept2_online, node()});
 start_profiling(rq_migration, [Node|_]) ->
     erlang:start_timer(1, self(), <<"Online profiling started...!">>),
-    rpc:call(Node, percept2_sampling, start,
-             [[run_queues], infinity, none,{percept2_live, node()}]),
-    percept2_online_trace:start_trace(migration, Node,{percept2_live, node()});
+    Res=rpc:call(Node, percept2_online_sampling, start,
+                 [[run_queues], infinity, none,{percept2_online, node()}]),
+    case Res of 
+        {badrpc, Reason} ->
+            io:format("Percept2_online failed to start profiling for reason:\n~p\n",
+                      [Reason]);
+        _ -> 
+            percept2_online_trace:start_trace(migration, Node,{percept2_online, node()})
+    end;
 start_profiling(inter_node, Nodes) ->
     erlang:start_timer(1, self(), <<"Online profiling started...!">>),
-    percept2_online_trace:start_trace(inter_node, Nodes, {percept2_live, node()});
+    percept2_online_trace:start_trace(inter_node, Nodes, {percept2_online, node()});
 start_profiling(s_group, Nodes) ->
-    percept2_online_trace:start_trace(s_group, Nodes, {percept2_live, node()});
+    percept2_online_trace:start_trace(s_group, Nodes, {percept2_online, node()});
 start_profiling(Cmd, _Nodes) ->
     io:format("start_profiling: unnexpected command:~p\n", [Cmd]),
     ok.
 
 
 stop_profiling(rq, [Node|_]) ->
-    rpc:call(Node, percept2_sampling, stop,[]);
+    Res=rpc:call(Node, percept2_online_sampling, stop,[]),
+    case Res of 
+        {badrpc, Reason} ->
+            io:format("Percept2_online failed to stop profiling for reason:\n~p\n",
+                      [Reason]);
+        _ -> 
+           Res
+    end;
 stop_profiling(migration, [_Node|_]) ->
     percept2_online_trace:stop_trace();
 stop_profiling(rq_migration, [Node|_]) ->
-    rpc:call(Node, percept2_sampling, stop,[]),
+    Res=rpc:call(Node, percept2_online_sampling, stop,[]),
+    case Res of 
+        {badrpc, Reason} ->
+            io:format("Percept2_online failed to stop profiling for reason:\n~p\n",
+                      [Reason]);
+        _ -> 
+            Res
+    end,
     erlang:start_timer(1, self(), stop_profile),
     percept2_online_trace:stop_trace();
 stop_profiling(inter_node, _Nodes) ->

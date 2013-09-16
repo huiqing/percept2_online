@@ -144,3 +144,8 @@ run_orbit_with_trace() ->
              [fun bench:g124/1, 10000, 8,Nodes]).
     
 %% percept2:profile("sim_code.dat", {sim_code,sim_code_detection, [["c:/cygwin/home/hl/git_repos/case_studies/par_sim_code/test"], 3, 40, 2, 4, 0.8, [], 8]},  [all]).
+
+%% Example commands
+%% percept2_sampling:sample( ['all'[["c:/cygwin/home/hl/test"], 5, 40, 2, 4, 0.8, 
+%%                                                                      ["c:/cygwin/home/hl/test"],8]},"../profile_data").
+%%percept2_sampling:sample([all, {'message_queue_len', 'percept2_db'}], {percept2, analyze, [["sim_code.dat"]]}, ".").
