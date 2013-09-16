@@ -1,17 +1,16 @@
-Cowboy websocket
+Percept2 Online Visualisation
 ================
 
-To compile this example you need rebar in your PATH.
+To compile the code you need rebar in your PATH.
 
 Type the following command:
 ```
-$ rebar get-deps compile
+$ make
 ```
 
-You can then start the Erlang node with the following command:
+You can then start the online visualisation from an Erlang node with the following command:
 ```
-./start.sh
+percept2_online:start().
 ```
 
-Then point your browser to the indicated URL to open a websocket client.
-Not all browsers support websockets. It was tested with Chromium.
+Then point your browser to the indicated URL to open the Percept2 online visualisation page.
