@@ -41,7 +41,7 @@
 %% <a href="http://www.erlang.org/doc/man/erlang.html#system_info-1">erlang:system_info/1</a> 
 %% and <a href="http://www.erlang.org/doc/man/erlang.html#process_info-2">erlang:process_info/1</a>.
 
--module(percept2_sampling).
+-module(percept2_online_sampling).
 
 -export([start/4, start/5, start/6,stop/0]).
 
@@ -105,7 +105,7 @@
 
 -define(online, true).
 
--define(WS, {percept2_live, 'percept2_live@127.0.0.1'}).
+-define(WS, {percept2_online, 'percept2_online@127.0.0.1'}).
 
 %%-define(debug, 9).
 %%-define(debug, 0). 
@@ -385,7 +385,6 @@ do_sample(run_queues,StartTs,Receiver) ->
     RunQueues= erlang:statistics(run_queues),
     Info=#run_queues_info{timestamp=?seconds((now()), StartTs),
                          run_queues = RunQueues},
-    ?dbg(0, "RunQueues:\n~p\n", [Info]),
     insert_data(Info,run_queues,Receiver);
 do_sample(scheduler_utilisation,StartTs,Receiver) ->
     SchedulerWallTime=erlang:statistics(scheduler_wall_time),
