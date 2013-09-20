@@ -56,13 +56,13 @@ websocket_info({timeout, _Ref, _Msg}, Req, State) ->
                      Data = [{From, To, Times}||
                                 {{From, To}, Times}<-State#state.data],
                      lists:flatten(
-                       io_lib:format("~p.", 
-                                     [{Cnt*200/1000,Data}]));
+                       io_lib:format("{~.3f,~p}.", 
+                                     [Cnt*200/1000,Data]));
                  _ ->
                      lists:flatten(
-                       io_lib:format("~p.", 
-                                     [{Cnt*200/1000,
-                                       State#state.data}]))
+                       io_lib:format("{~.3f,~p}.", 
+                                     [Cnt*200/1000,
+                                       State#state.data]))
              end,
     erlang:start_timer(200, self(), <<"timeout">>),
     {reply, {text, list_to_binary(StateStr)}, Req, 
